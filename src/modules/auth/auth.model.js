@@ -1,4 +1,3 @@
-import { required } from "joi";
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(
@@ -30,6 +29,10 @@ const userSchema = new mongoose.Schema(
         isVerified: {
             type: Boolean,
             default: false,
+        },
+        verificationToken: {
+            type: String,
+            select: false,
         },
         refreshToken: {
             type: String,
