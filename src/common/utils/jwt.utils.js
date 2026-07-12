@@ -23,4 +23,4 @@ const generateResetToken = async () => {
     return { rawToken, hashedToken };
 };
 
-export { generateResetToken };
+export { generateResetToken, generateAccessToken, verifyAccessToken, generateRefreshToken, verifyRefreshToken };
