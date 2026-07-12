@@ -1,5 +1,10 @@
 import ApiError from "../../common/utils/api-error";
-import { generateAccessToken, generateRefreshToken, generateResetToken } from "../../common/utils/jwt.utils.js";
+import {
+    generateAccessToken,
+    generateRefreshToken,
+    generateResetToken,
+    verifyRefreshToken,
+} from "../../common/utils/jwt.utils.js";
 import User from "./auth.model.js";
 import crypto from "crypto";
 
@@ -41,10 +46,28 @@ const login = async ({ email, password }) => {
 
     const userObj = user.toObject();
     delete userObj.password;
-    delete userObj.verificationToken;
     delete userObj.refreshToken;
 
     return { user: userObj, accessToken, refreshToken };
 };
 
-export { register, login };
+const refresh = async (token) => {
+    if (!token) throw ApiError.unauthorized("Refresh token is missing");
+
+    const decoded = verifyRefreshToken(token);
+
+    const user = await User.findById(decoded.id).select("+refreshToken");
+    if (!user) throw ApiError.unauthorized("User not found");
+
+    if (hashToken(token) !== user.refreshToken) throw ApiError.unauthorized("Invalid refresh token");
+
+    const accessToken = generateAccessToken({ id: user._id, role: user.role });
+    const refreshToken = generateRefreshToken({ id: user._id });
+
+    user.refreshToken = hashToken(refreshToken);
+    user.save({ validateBeforeSave: false });
+
+    return { accessToken, refreshToken };
+};
+
+export { register, login, refresh };
