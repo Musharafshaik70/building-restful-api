@@ -1,4 +1,3 @@
-
 import ApiError from "../../common/utils/api-error";
 import {
     generateAccessToken,
@@ -35,7 +34,8 @@ const login = async ({ email, password }) => {
     const user = await User.findOne({ email });
     if (!user) throw ApiError.badRequest("Email or password is incorrect");
 
-    // password checking
+    const checkPassword = await user.comparePassword(password);
+    if (!checkPassword) throw ApiError.unauthorized("Password is Incorrect");
 
     if (!user.isVerified) throw ApiError.forbidden("User is Unauthorized");
 
@@ -71,46 +71,42 @@ const refresh = async (token) => {
     return { accessToken, refreshToken };
 };
 
-const logout = (userId) => {
-    await User.findByIdAndUpdate(userId,{refreshToken:null})
-}
-
+const logout = async (userId) => {
+    await User.findByIdAndUpdate(userId, { refreshToken: null });
+};
 
 const forgotPassword = async (email) => {
-const user = await User.findOne({email});
-if(!user) throw ApiError.notFound("User not found");
+    const user = await User.findOne({ email });
+    if (!user) throw ApiError.notFound("User not found");
 
-const {rawToken,hashedToken} = generateResetToken();
+    const { rawToken, hashedToken } = generateResetToken();
 
-user.resetPasswordToken = hashedToken;
-user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
 
-await user.save();
+    await user.save();
 
-//send rawToken to user via email
-}
+    //send rawToken to user via email
+};
 
+const resetPassword = async (email, token, password) => {
+    if (!token) throw ApiError.unauthorized("Token is Missing");
 
-const resetPassword = async  (email,token,password) => {
-if(!token) throw ApiError.unauthorized("Token is Missing");
+    const user = await User.findOne({ email }).select("+resetPasswordToken +resetPasswordExpires");
+    if (!user) throw ApiError.unauthorized("User is unauthorized");
 
-const user = await User.findOne({email}).select("+resetPasswordToken +resetPasswordExpires");
-if(!user) throw ApiError.unauthorized("User is unauthorized")
+    if (Date.now() > user.resetPasswordExpires) throw ApiError.unauthorized("Reset token has expired");
 
-if(Date.now() > user.resetPasswordExpires) throw ApiError.unauthorized("Reset token has expired")
+    if (hashToken(token) !== user.resetPasswordToken) throw ApiError.unauthorized("Invalid token");
 
-if(hashToken(token) !== user.resetPasswordToken) throw ApiError.unauthorized("Invalid token");
+    user.password = password;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpires = null;
 
-//user.password = //hashedPassword
-user.resetPasswordToken = null;
-user.resetPasswordExpires = null;
-
- await user.save()
-
-}
+    await user.save();
+};
 
 export { register, login, refresh, logout, forgotPassword, resetPassword };
-
 
 //user.refreshToken = null ----> "refreshToken " field exists in DB.
 //user.refreshToken = undefined -----> "refreshToken " is removed from DB.
