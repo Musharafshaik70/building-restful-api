@@ -39,6 +39,11 @@ const resetPassword = async (req, res) => {
     return ApiResponse.ok(res, "Password reset successful");
 };
 
+const verifyEmail = async (req, res) => {
+    const user = await authService.verifyEmail(req.params);
+    return ApiResponse.ok(res, "Email verified successfully", user);
+};
+
 const getMe = async (req, res) => {
     const user = await authService.getMe(req.user.id);
     return ApiResponse.ok(res, "Successfully Fetched User Details", user);

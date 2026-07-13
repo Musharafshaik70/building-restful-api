@@ -23,7 +23,7 @@ const register = async ({ name, email, password, role }) => {
         verificationToken: hashedToken,
     });
 
-    //send verificationToken via email
+    //send verification email to user
 
     const userObj = user.toObject();
     delete userObj.password;
@@ -109,13 +109,26 @@ const resetPassword = async (email, token, newPassword) => {
     await user.save();
 };
 
+const verifyEmail = async (token) => {
+    const hashedToken = hashToken(token);
+
+    const user = await User.findOne({ verificationToken: hashedToken }).select("+verificationToken +isVerified");
+    if (!user) throw ApiError.unauthorized("Not Authorized");
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    await user.save();
+
+    return user;
+};
+
 const getMe = async (userId) => {
     const user = await User.findById(userId);
     if (!user) throw ApiError.notFound("User not found");
     return user;
 };
 
-export { register, login, refresh, logout, forgotPassword, resetPassword, getMe };
+export { register, login, refresh, logout, forgotPassword, resetPassword, verifyEmail, getMe };
 
 //user.refreshToken = null ----> "refreshToken " field exists in DB.
 //user.refreshToken = undefined -----> "refreshToken " is removed from DB.
