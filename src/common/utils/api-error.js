@@ -14,6 +14,10 @@ class ApiError extends Error {
         return new ApiError(401, message);
     }
 
+    static notFound(message = "User not Found") {
+        return ApiError(404, message);
+    }
+
     static conflict(message = "Conflict - User already exists") {
         return ApiError(409, message);
     }
