@@ -1,4 +1,4 @@
-import ApiError from "../../common/utils/api-error";
+import ApiError from "../../common/utils/api-error.js";
 import {
     generateAccessToken,
     generateRefreshToken,
@@ -22,6 +22,8 @@ const register = async ({ name, email, password, role }) => {
         role,
         verificationToken: hashedToken,
     });
+
+    //send verificationToken via email
 
     const userObj = user.toObject();
     delete userObj.password;
@@ -87,9 +89,10 @@ const forgotPassword = async (email) => {
     await user.save();
 
     //send rawToken to user via email
+    return rawToken;
 };
 
-const resetPassword = async (email, token, password) => {
+const resetPassword = async (email, token, newPassword) => {
     if (!token) throw ApiError.unauthorized("Token is Missing");
 
     const user = await User.findOne({ email }).select("+resetPasswordToken +resetPasswordExpires");
@@ -99,14 +102,20 @@ const resetPassword = async (email, token, password) => {
 
     if (hashToken(token) !== user.resetPasswordToken) throw ApiError.unauthorized("Invalid token");
 
-    user.password = password;
+    user.password = newPassword;
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
 
     await user.save();
 };
 
-export { register, login, refresh, logout, forgotPassword, resetPassword };
+const getMe = async (userId) => {
+    const user = await User.findById(userId);
+    if (!user) throw ApiError.notFound("User not found");
+    return user;
+};
+
+export { register, login, refresh, logout, forgotPassword, resetPassword, getMe };
 
 //user.refreshToken = null ----> "refreshToken " field exists in DB.
 //user.refreshToken = undefined -----> "refreshToken " is removed from DB.
