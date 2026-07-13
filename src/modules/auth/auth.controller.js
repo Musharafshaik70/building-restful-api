@@ -30,7 +30,6 @@ const refresh = async (req, res) => {
 const forgotPassword = async (req, res) => {
     const { email } = req.body;
     const rawToken = await authService.forgotPassword(email);
-    //send rawToken via email
     return ApiResponse.ok(res, "Token sent to mail");
 };
 
