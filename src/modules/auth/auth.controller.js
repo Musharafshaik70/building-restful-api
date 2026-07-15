@@ -69,4 +69,4 @@ const getMe = async (req, res) => {
 
 export { register, login, refreshToken, logout, verifyEmail, forgotPassword, resetPassword, getMe };
 
-// here , we are exposing the tokens by retiurning it in response. It is just for testing.
+// here , we are exposing the tokens by returning it in response. It is just for testing.

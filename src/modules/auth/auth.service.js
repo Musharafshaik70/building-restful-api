@@ -15,7 +15,7 @@ const register = async ({ name, email, password, role }) => {
     const existing = await User.findOne({ email });
     if (existing) throw ApiError.conflict("Email already exists");
 
-    const { rawToken, hashedToken } = generateResetToken();
+    const { rawToken, hashedToken } = await generateResetToken();
     const user = await User.create({
         name,
         email,
@@ -39,10 +39,10 @@ const register = async ({ name, email, password, role }) => {
 };
 
 const login = async ({ email, password }) => {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) throw ApiError.badRequest("Email or password is incorrect");
 
-    const checkPassword = await user.comparePassword(password);
+    const checkPassword = await user.comparePassword(password, user.password);
     if (!checkPassword) throw ApiError.unauthorized("Password is Incorrect");
 
     if (!user.isVerified) throw ApiError.forbidden("User is Unauthorized");
@@ -88,17 +88,21 @@ const logout = async (userId) => {
 const verifyEmail = async (token) => {
     const trimmed = String(token).trim();
 
-    const hashedToken = hash(trimmed);
+    const hashedToken = hashToken(trimmed);
 
-    const user = await User.findOne({ verificationToken: hashedToken }).select("+verificationToken");
+    let user = await User.findOne({ verificationToken: hashedToken }).select("+verificationToken");
 
     if (!user) throw ApiError.badRequest("Invalid or expired verification token");
 
     //updating isVerified to true and deleting the verificationToken field so that it cannot be reused
-    await User.findByIdAndUpdate(user._id, {
-        $set: { isVerified: true },
-        $unset: { verificationToken: 1 },
-    });
+    user = await User.findByIdAndUpdate(
+        user._id,
+        {
+            $set: { isVerified: true },
+            $unset: { verificationToken: 1 },
+        },
+        { new: true },
+    );
 
     return user;
 };

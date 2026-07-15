@@ -31,7 +31,7 @@ const sendEmail = async (to, subject, html) => {
 };
 
 const sendVerificationEmail = async (email, token) => {
-    const url = `${process.env.CLIENT_URL}/verify-email/${token}`;
+    const url = `${process.env.CLIENT_URL}/api/auth/verify-email/${token}`;
     await sendEmail(
         email,
         "Verify your email",
@@ -40,7 +40,7 @@ const sendVerificationEmail = async (email, token) => {
 };
 
 const sendResetPasswordEmail = async (email, token) => {
-    const url = `${process.env.CLIENT_URL}/reset-password/${token}`;
+    const url = `${process.env.CLIENT_URL}/api/auth/reset-password/${token}`;
     await sendEmail(
         email,
         "Reset your Password",
@@ -51,3 +51,5 @@ const sendResetPasswordEmail = async (email, token) => {
 export { sendVerificationEmail, sendResetPasswordEmail };
 
 //refer nodemailer and mailtrap
+
+// if frontend is availabe remove /api/auth from the sendVerificationEmail, sendResetPasswordEmail
