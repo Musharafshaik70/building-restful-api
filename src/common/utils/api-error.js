@@ -15,15 +15,15 @@ class ApiError extends Error {
     }
 
     static notFound(message = "User not Found") {
-        return ApiError(404, message);
+        return new ApiError(404, message);
     }
 
     static conflict(message = "Conflict - User already exists") {
-        return ApiError(409, message);
+        return new ApiError(409, message);
     }
 
     static forbidden(message = "User not Authorized") {
-        return ApiError(412, message);
+        return new ApiError(412, message);
     }
 }
 
