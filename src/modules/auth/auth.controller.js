@@ -1,16 +1,44 @@
-import ApiResponse from "../../common/utils/api-response.js";
 import * as authService from "./auth.service.js";
+import ApiResponse from "../../common/utils/api-response.js";
 
 const register = async (req, res) => {
     const user = await authService.register(req.body);
-    return ApiResponse.created(res, "Successfully Registered", user);
+    return ApiResponse.created(res, "Registration Successful. Please verify your Email", user);
 };
 
 const login = async (req, res) => {
     const { user, accessToken, refreshToken } = await authService.login(req.body);
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 15 * 60 * 1000 });
+    res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 15 * 60 * 1000,
+    });
     return ApiResponse.ok(res, "Login Successful", { user, accessToken, refreshToken });
+};
+
+const refreshToken = async (req, res) => {
+    const token = req.cookies?.refreshToken;
+    const { newAccessToken, newRefreshToken } = await authService.refresh(token);
+    res.cookie("refreshToken", newRefreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    res.cookie("accessToken", newAccessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 15 * 60 * 1000,
+    });
+    return ApiResponse.ok(res, "Tokens updated", { newAccessToken, newRefreshToken });
 };
 
 const logout = async (req, res) => {
@@ -19,28 +47,19 @@ const logout = async (req, res) => {
     return ApiResponse.ok(res, "Logout Successful");
 };
 
-const refresh = async (req, res) => {
-    const token = req.cookies.refreshToken;
-    const { accessToken, refreshToken } = await authService.refresh(token);
-    res.cookie("refreshToken", refreshToken, { httpOnly: true, secure: true, maxAge: 7 * 24 * 60 * 60 * 1000 });
-    res.cookie("accessToken", accessToken, { httpOnly: true, secure: true, maxAge: 15 * 60 * 1000 });
-    return ApiResponse.ok(res, "Tokens updated", { accessToken, refreshToken });
+const verifyEmail = async (req, res) => {
+    const user = await authService.verifyEmail(req.params.token);
+    return ApiResponse.ok(res, "Email verified successfully", user);
 };
 
 const forgotPassword = async (req, res) => {
-    const { email } = req.body;
-    const rawToken = await authService.forgotPassword(email);
+    const rawToken = await authService.forgotPassword(req.body.email);
     return ApiResponse.ok(res, "Token sent to mail");
 };
 
 const resetPassword = async (req, res) => {
-    await authService.resetPassword(req.body);
+    await authService.resetPassword(req.body.token, req.body.password);
     return ApiResponse.ok(res, "Password reset successful");
-};
-
-const verifyEmail = async (req, res) => {
-    const user = await authService.verifyEmail(req.params);
-    return ApiResponse.ok(res, "Email verified successfully", user);
 };
 
 const getMe = async (req, res) => {
@@ -48,4 +67,6 @@ const getMe = async (req, res) => {
     return ApiResponse.ok(res, "Successfully Fetched User Details", user);
 };
 
-export { register, login, logout, refresh, forgotPassword, resetPassword, getMe };
+export { register, login, refreshToken, logout, verifyEmail, forgotPassword, resetPassword, getMe };
+
+// here , we are exposing the tokens by retiurning it in response. It is just for testing.

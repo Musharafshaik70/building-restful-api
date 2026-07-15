@@ -1,7 +1,7 @@
 import Joi from "joi";
 import BaseDto from "../../../common/dto/base.dto";
 
-class resetPasswordDto extends BaseDto {
+class ResetPasswordDto extends BaseDto {
     static schema = Joi.object({
         password: Joi.string()
             .pattern(/(?=.*[A-Z])(?=.*\d)/)
@@ -11,4 +11,4 @@ class resetPasswordDto extends BaseDto {
     });
 }
 
-export default resetPasswordDto;
+export default ResetPasswordDto;
