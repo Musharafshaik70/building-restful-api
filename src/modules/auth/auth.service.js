@@ -1,3 +1,5 @@
+import crypto from "crypto";
+import User from "./auth.model.js";
 import ApiError from "../../common/utils/api-error.js";
 import {
     generateAccessToken,
@@ -5,8 +7,7 @@ import {
     generateResetToken,
     verifyRefreshToken,
 } from "../../common/utils/jwt.utils.js";
-import User from "./auth.model.js";
-import crypto from "crypto";
+import { sendVerificationEmail, sendResetPasswordEmail } from "./../../common/config/email.js";
 
 const hashToken = (token) => crypto.createHash("sha256").update(token).digest("hex");
 
@@ -24,6 +25,11 @@ const register = async ({ name, email, password, role }) => {
     });
 
     //send verification email to user
+    try {
+        await sendVerificationEmail(email, rawToken);
+    } catch (err) {
+        console.error("Failed to send verification Email:", err.message);
+    }
 
     const userObj = user.toObject();
     delete userObj.password;
@@ -74,7 +80,27 @@ const refresh = async (token) => {
 };
 
 const logout = async (userId) => {
+    // Clear stored refresh token so it can't be reused
     await User.findByIdAndUpdate(userId, { refreshToken: null });
+};
+
+//VerifyEmail service is used to verify the user when he clicks on the Verify button sent to email
+const verifyEmail = async (token) => {
+    const trimmed = String(token).trim();
+
+    const hashedToken = hash(trimmed);
+
+    const user = await User.findOne({ verificationToken: hashedToken }).select("+verificationToken");
+
+    if (!user) throw ApiError.badRequest("Invalid or expired verification token");
+
+    //updating isVerified to true and deleting the verificationToken field so that it cannot be reused
+    await User.findByIdAndUpdate(user._id, {
+        $set: { isVerified: true },
+        $unset: { verificationToken: 1 },
+    });
+
+    return user;
 };
 
 const forgotPassword = async (email) => {
@@ -88,38 +114,34 @@ const forgotPassword = async (email) => {
 
     await user.save();
 
-    //send rawToken to user via email
+    try {
+        await sendResetPasswordEmail(email, rawToken);
+    } catch (err) {
+        console.error("Failed to send reset email : ", err.message);
+    }
     return rawToken;
 };
 
-const resetPassword = async (email, token, newPassword) => {
+const resetPassword = async (token, newPassword) => {
     if (!token) throw ApiError.unauthorized("Token is Missing");
+    const trimmed = String(token).trim();
 
-    const user = await User.findOne({ email }).select("+resetPasswordToken +resetPasswordExpires");
-    if (!user) throw ApiError.unauthorized("User is unauthorized");
+    const hashedToken = hashToken(trimmed);
 
-    if (Date.now() > user.resetPasswordExpires) throw ApiError.unauthorized("Reset token has expired");
+    const user = await User.findOne({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { $gt: Date.now() },
+    }).select("+resetPasswordToken +resetPasswordExpires");
+
+    if (!user) throw ApiError.unauthorized("Reset token is invalid or has expired");
 
     if (hashToken(token) !== user.resetPasswordToken) throw ApiError.unauthorized("Invalid token");
 
     user.password = newPassword;
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
 
     await user.save();
-};
-
-const verifyEmail = async (token) => {
-    const hashedToken = hashToken(token);
-
-    const user = await User.findOne({ verificationToken: hashedToken }).select("+verificationToken +isVerified");
-    if (!user) throw ApiError.unauthorized("Not Authorized");
-
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    await user.save();
-
-    return user;
 };
 
 const getMe = async (userId) => {
@@ -129,6 +151,3 @@ const getMe = async (userId) => {
 };
 
 export { register, login, refresh, logout, forgotPassword, resetPassword, verifyEmail, getMe };
-
-//user.refreshToken = null ----> "refreshToken " field exists in DB.
-//user.refreshToken = undefined -----> "refreshToken " is removed from DB.

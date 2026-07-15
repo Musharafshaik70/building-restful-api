@@ -10,3 +10,5 @@ const validate = (DtoClass) => {
         next();
     };
 };
+
+export default validate;

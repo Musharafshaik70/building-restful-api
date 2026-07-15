@@ -1,9 +1,9 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-    host: "smtp.example.com",
-    port: 587,
-    secure: false, // use STARTTLS (upgrade connection to TLS after connecting)
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    //default secure value is false and 587 is used  for secure: false
     auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
@@ -17,23 +17,37 @@ try {
     console.error("Verification failed:", err);
 }
 
-const sendMail = async (to, subject, html) => {
+const sendEmail = async (to, subject, html) => {
     try {
         await transporter.sendMail({
-            from: '"Example Team" <team@example.com>', // sender address
-            to: "alice@example.com, bob@example.com", // list of recipients
-            subject: "Hello", // subject line
-            text: "Hello world?", // plain text body
-            html: "<b>Hello world?</b>", // HTML body
+            from: `"${process.env.SMTP_FROM_NAME}" <${process.env.SMTP_FROM_EMAIL}>`,
+            to,
+            subject,
+            html,
         });
     } catch (err) {
         console.error("Error while sending mail:", err);
     }
 };
 
+const sendVerificationEmail = async (email, token) => {
+    const url = `${process.env.CLIENT_URL}/verify-email/${token}`;
+    await sendEmail(
+        email,
+        "Verify your email",
+        `<h2>Welcome!</h2><p>Click <a href="${url}">here</a> to verify your email.</p>`,
+    );
+};
 
+const sendResetPasswordEmail = async (email, token) => {
+    const url = `${process.env.CLIENT_URL}/reset-password/${token}`;
+    await sendEmail(
+        email,
+        "Reset your Password",
+        `<h2>Reset Password</h2> <p>Click here to reset your Password : <a href="${url}">Click Here</a>. This link expires in 15 minutes.`,
+    );
+};
 
-export { sendMail, sendVerificationEmail };
+export { sendVerificationEmail, sendResetPasswordEmail };
 
-//raw code copied from nodemailer.
-//one change to wrap the sending process in sendMail function
+//refer nodemailer and mailtrap
