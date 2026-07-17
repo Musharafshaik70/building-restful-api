@@ -1,4 +1,4 @@
-we are exposing the refreshToken and token by sending them in response.It is just for testing purpose. If you want to use in production , don't send them. refer auth.services.js
+we are exposing the refreshToken , accessToken, resetPasswodToken by sending them in response.It is just for testing purpose. If you want to use in production , don't send them. refer auth.services.js
 
 If you have frontend , then change the url from /api/auth/verify-email/:${token} to /verify-email/${token} . check for other methods too in common > config > email.js
 
