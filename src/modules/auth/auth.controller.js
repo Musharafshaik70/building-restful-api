@@ -1,5 +1,6 @@
 import * as authService from "./auth.service.js";
 import ApiResponse from "../../common/utils/api-response.js";
+import ApiError from "../../common/utils/api-error.js";
 
 const register = async (req, res) => {
     const user = await authService.register(req.body);
@@ -25,7 +26,7 @@ const login = async (req, res) => {
 
 const refreshToken = async (req, res) => {
     const token = req.cookies?.refreshToken;
-    const { newAccessToken, newRefreshToken } = await authService.refresh(token);
+    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = await authService.refresh(token);
     res.cookie("refreshToken", newRefreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
@@ -54,11 +55,11 @@ const verifyEmail = async (req, res) => {
 
 const forgotPassword = async (req, res) => {
     const rawToken = await authService.forgotPassword(req.body.email);
-    return ApiResponse.ok(res, "Token sent to mail");
+    return ApiResponse.ok(res, "Token sent to mail", rawToken);
 };
 
 const resetPassword = async (req, res) => {
-    await authService.resetPassword(req.body.token, req.body.password);
+    await authService.resetPassword(req.params.token, req.body.password);
     return ApiResponse.ok(res, "Password reset successful");
 };
 
