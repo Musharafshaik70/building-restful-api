@@ -111,7 +111,7 @@ const forgotPassword = async (email) => {
     const user = await User.findOne({ email });
     if (!user) throw ApiError.notFound("User not found");
 
-    const { rawToken, hashedToken } = generateResetToken();
+    const { rawToken, hashedToken } = await generateResetToken();
 
     user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
@@ -138,8 +138,6 @@ const resetPassword = async (token, newPassword) => {
     }).select("+resetPasswordToken +resetPasswordExpires");
 
     if (!user) throw ApiError.unauthorized("Reset token is invalid or has expired");
-
-    if (hashToken(token) !== user.resetPasswordToken) throw ApiError.unauthorized("Invalid token");
 
     user.password = newPassword;
     user.resetPasswordToken = undefined;
