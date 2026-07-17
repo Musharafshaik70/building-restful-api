@@ -5,9 +5,7 @@ import User from "./auth.model.js";
 // Authenticates using the short-lived access token (header or cookie)
 const authenticate = async (req, res, next) => {
     let token;
-    if (req.headers.authorization?.startsWith("Bearer")) {
-        let token = req.headers.authorization.split(" ")[1];
-    }
+    if (req.headers.authorization?.startsWith("Bearer")) token = req.headers.authorization.split(" ")[1];
 
     if (!token) throw ApiError.unauthorized("Not authorized");
 
